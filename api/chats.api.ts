@@ -11,6 +11,18 @@ export async function uploadChats(file: File) {
   return res.data
 }
 
+
+export async function syncOutlook(file: File) {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const res = await api.post("/sync/outlook", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+
+  return res.data
+}
+
 export async function getChats() {
   const res = await api.get("/chats")
   return res.data
@@ -72,3 +84,4 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.remove()
   URL.revokeObjectURL(url)
 }
+

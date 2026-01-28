@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!alive) return
         clear()
         // ✅ usar la misma ruta que en tu interceptor
-        router.replace("/login") // o "/auth/login" pero que sea UNA sola
+        router.replace("/auth/login") // o "/auth/login" pero que sea UNA sola
       } finally {
         if (alive) setChecking(false)
       }

@@ -22,7 +22,8 @@ export default function ChatsPage() {
     setSearchQuery,
     isLoading,
     uploadNewChat,
-    uploadManyChats
+    uploadManyChats,
+    reloadChats 
   } = useChats()
 
 useEffect(() => {
@@ -49,6 +50,7 @@ useEffect(() => {
           onSearchChange={setSearchQuery}
           onUploadFiles={uploadManyChats}
           // onUploadFile={uploadNewChat}
+          onSyncOutlook={reloadChats }
           isLoading={isLoading}
           totalChats={chats.length}
         />
@@ -63,7 +65,7 @@ useEffect(() => {
               display: { xs: selectedChatId ? "none" : "flex", md: "flex" },
               //  width: { xs: "100%", md: 320 },
               borderRight: { md: 1 },
-              borderColor: "divider",     // ✅
+              borderColor: "divider",    
               overflow: "hidden",  
             }}
           >

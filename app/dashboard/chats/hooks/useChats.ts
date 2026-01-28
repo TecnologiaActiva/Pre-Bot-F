@@ -62,9 +62,9 @@ export function useChats() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ total: number; done: number; current?: string }>({
-  total: 0,
-  done: 0,
-})
+    total: 0,
+    done: 0,
+  })
 
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -73,17 +73,19 @@ export function useChats() {
   const loadChats = async () => {
     setIsLoading(true)
     try {
-      const data = await getChats()
+      const data = await getChats();
+      console.log("DATTATTATA", data);
       // API: [{ id, nombre, numero, fecha_carga }]
       const mapped: Chat[] = (data || []).map((c: any) => ({
         id: c.id,
         name: c.nombre ?? "Sin nombre",
-        phone: c.numero ?? "desconocido",
+        telefono1: c.telefono ?? "desconocido",
+        telefono2: c.telefono2 ?? "desconocido",
         online: false,
         avatar: undefined,
         unreadCount: 0,
         lastMessage: "",
-        timestamp: parseFechaCarga(c.fecha_carga),
+        timestamp: c.fecha_carga ? new Date(c.fecha_carga) : undefined,
       }))
       setChats(mapped)
     } finally {
@@ -107,32 +109,33 @@ export function useChats() {
   }
 
   const uploadManyChats = async (files: File[]) => {
-  const only = files.filter((f) => {
-    const n = f.name.toLowerCase()
-    return n.endsWith(".zip") || n.endsWith(".rar")
-  })
+    const only = files.filter((f) => {
+      const n = f.name.toLowerCase()
+      return n.endsWith(".zip") || n.endsWith(".rar")
+    })
 
-  setUploadProgress({ total: only.length, done: 0, current: "" })
-  setIsLoading(true)
+    setUploadProgress({ total: only.length, done: 0, current: "" })
+    setIsLoading(true)
 
-  try {
-    // ✅ recomendado: secuencial (evita saturar el back)
-    for (let i = 0; i < only.length; i++) {
-      const f = only[i]
-      setUploadProgress((p) => ({ ...p, current: f.name }))
+    try {
+      // ✅ recomendado: secuencial (evita saturar el back)
+      for (let i = 0; i < only.length; i++) {
+        const f = only[i]
+        setUploadProgress((p) => ({ ...p, current: f.name }))
 
-      await uploadChats(f) // tu API actual
-      setUploadProgress((p) => ({ ...p, done: p.done + 1 }))
+        await uploadChats(f) // tu API actual
+        setUploadProgress((p) => ({ ...p, done: p.done + 1 }))
+      }
+
+      await loadChats()
+    } finally {
+      setIsLoading(false)
+      setUploadProgress((p) => ({ ...p, current: "" }))
     }
-
-    await loadChats()
-  } finally {
-    setIsLoading(false)
-    setUploadProgress((p) => ({ ...p, current: "" }))
   }
-}
 
 
+  // Función que se ejecuta al seleccionar un chat de la lista.
   const selectChat = async (chatId: number) => {
     setSelectedChatId(chatId)
     setIsLoading(true)
@@ -165,7 +168,7 @@ export function useChats() {
       setMessages(msgs)
 
       // Opcional: actualiza preview del chat seleccionado (último mensaje / timestamp)
-      const last = msgs[msgs.length - 1]
+      const last = msgs[msgs.length - 1]      
       if (last) {
         setChats((prev) =>
           prev.map((c) =>
@@ -207,5 +210,6 @@ export function useChats() {
     clearSelection,
     uploadManyChats,
     uploadProgress,
+    reloadChats: loadChats
   }
 }

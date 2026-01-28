@@ -1,7 +1,7 @@
 // path: src/app/chats/components/ChatMessages.tsx
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { Box, Typography, Paper, Avatar, IconButton, Tooltip, Link, CircularProgress } from "@mui/material"
 import {
   DoneAll as DeliveredIcon,
@@ -10,6 +10,8 @@ import {
   MoreVert as MoreIcon,
   Phone as PhoneIcon,
   AttachFile as AttachIcon,
+  KeyboardArrowDown as KeyboardArrowDown,
+  KeyboardArrowUp as KeyboardArrowUp
 } from "@mui/icons-material"
 import type { Message, Chat, ArchivoAdjunto } from "../hooks/useChats"
 import { createObjectUrl, revokeObjectUrl, downloadArchivoBlob, downloadBlob } from "@/api/chats.api"
@@ -20,9 +22,23 @@ interface Props {
   onBack?: () => void
 }
 
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+function formatDateTime(dateInput: string | Date): string {
+  const date = new Date(dateInput)
+
+  const fecha = date.toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+
+  const hora = date.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+
+  return `${fecha} ${hora}`
 }
+
 
 function getInitials(name: string): string {
   return name
@@ -54,6 +70,24 @@ function isAudio(mime: string | null, tipo?: string) {
 function isVideo(mime: string | null, tipo?: string) {
   return (mime || "").toLowerCase().startsWith("video/") || tipo === "video"
 }
+
+function getTelefonosPreview(chat: any): string {
+  const t1 = chat.telefono1
+  const t2 = chat.telefono2
+
+  const isValid = (v?: string) =>
+    v && v.trim() !== "" && v.toLowerCase() !== "desconocido"
+
+  if (isValid(t1) && isValid(t2)) {
+    return `${t1} · ${t2}`
+  }
+
+  if (isValid(t1)) return t1
+  if (isValid(t2)) return t2
+
+  return "Sin teléfono"
+}
+
 
 function AttachmentBlock({ a }: { a: ArchivoAdjunto }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
@@ -146,7 +180,45 @@ function AttachmentBlock({ a }: { a: ArchivoAdjunto }) {
   )
 }
 
+// Chat de un contacto
 export default function ChatMessages({ messages, selectedChat, onBack }: Props) {
+  const messagesRef = useRef<HTMLDivElement | null>(null)
+
+  // Scrollear hasta abajo al ingresar al chat
+  useEffect(() => {
+    if (!messagesRef.current) return
+
+    // timeout chico para asegurar que el DOM ya renderizó
+    const t = setTimeout(() => {
+      messagesRef.current!.scrollTo({
+        top: messagesRef.current!.scrollHeight,
+        behavior: "auto", // sin animación al entrar al chat 
+      })
+    }, 100)
+
+    return () => clearTimeout(t)
+  }, [selectedChat?.id, messages.length])
+
+
+  const scrollToBottom = () => {
+    if (!messagesRef.current) return
+
+    messagesRef.current.scrollTo({
+      top: messagesRef.current.scrollHeight,
+      behavior: "smooth",
+    })
+  }
+
+  const scrollToTop = () => {
+    if (!messagesRef.current) return
+
+    messagesRef.current.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
+  }
+
+
   if (!selectedChat) {
     return (
       <Box
@@ -176,7 +248,7 @@ export default function ChatMessages({ messages, selectedChat, onBack }: Props) 
         flexDirection: "column",
         bgcolor: "background.default",
         overflow: "hidden",
-        height: "85vh"
+        height: "85vh",
       }}
     >
       {/* Header */}
@@ -196,7 +268,15 @@ export default function ChatMessages({ messages, selectedChat, onBack }: Props) 
           <BackIcon />
         </IconButton>
 
-        <Avatar sx={{ width: 40, height: 40, bgcolor: "primary.main", fontSize: 14, fontWeight: 600 }}>
+        <Avatar
+          sx={{
+            width: 40,
+            height: 40,
+            bgcolor: "primary.main",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
           {getInitials(selectedChat.name)}
         </Avatar>
 
@@ -205,15 +285,10 @@ export default function ChatMessages({ messages, selectedChat, onBack }: Props) 
             {selectedChat.name}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {selectedChat.online ? "En línea" : selectedChat.phone}
+            {selectedChat.online ? "En línea" : getTelefonosPreview(selectedChat)}
           </Typography>
         </Box>
-        {/* 
-        <Tooltip title="Llamar">
-          <IconButton>
-            <PhoneIcon fontSize="small" />
-          </IconButton>
-        </Tooltip> */}
+
         <Tooltip title="Más opciones">
           <IconButton>
             <MoreIcon fontSize="small" />
@@ -221,105 +296,162 @@ export default function ChatMessages({ messages, selectedChat, onBack }: Props) 
         </Tooltip>
       </Box>
 
-      {/* Messages */}
+      {/* WRAPPER mensajes + flechas */}
       <Box
         sx={{
           flex: 1,
-          maxWidth: '100%',
-          maxHeight: '100%',       // ✅ clave
-          overflowY: "auto",  // ✅ scroll acá
-          p: 2,
-          display: "flex",
-          flexDirection: "column",
-          gap: 1,
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        {messages.map((msg, index) => {
-          const isUser = msg.from_me
-          const showAvatar =
-            !isUser && (index === 0 || messages[index - 1]?.from_me !== msg.from_me)
+        {/* Mensajes (scroll) */}
+        <Box
+          ref={messagesRef}
+          sx={{
+            height: "100%",
+            overflowY: "auto",
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+          }}
+        >
+          {messages.map((msg, index) => {
+            const isUser = msg.from_me
+            const showAvatar =
+              !isUser && (index === 0 || messages[index - 1]?.from_me !== msg.from_me)
 
-          return (
-            <Box key={msg.id} sx={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", gap: 1 }}>
-              {!isUser && (
-                <Avatar
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    bgcolor: "primary.main",
-                    fontSize: 11,
-                    visibility: showAvatar ? "visible" : "hidden",
-                  }}
-                >
-                  {getInitials(selectedChat.name)}
-                </Avatar>
-              )}
-
-              <Box sx={{ maxWidth: "50%" }}>
-                {!isUser && msg.autor_raw && (
-                  <Typography variant="caption" sx={{ display: "block", opacity: 0.8, mb: 0.5 }}>
-                    {msg.autor_raw}
-                  </Typography>
+            return (
+              <Box
+                key={msg.id}
+                sx={{
+                  display: "flex",
+                  justifyContent: isUser ? "flex-end" : "flex-start",
+                  gap: 1,
+                }}
+              >
+                {!isUser && (
+                  <Avatar
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      bgcolor: "primary.main",
+                      fontSize: 11,
+                      visibility: showAvatar ? "visible" : "hidden",
+                    }}
+                  >
+                    {getInitials(selectedChat.name)}
+                  </Avatar>
                 )}
 
-                <Paper
-                  elevation={0}
-                  sx={{
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    borderTopLeftRadius: !isUser ? 4 : 16,
-                    borderTopRightRadius: isUser ? 4 : 16,
-                    bgcolor: isUser ? "primary.main" : "background.paper",
-                    color: isUser ? "primary.contrastText" : "text.primary",
-                    border: isUser ? "none" : 1,
-                    borderColor: "divider",
-                  }}
-                >
-                  {msg.text && (
-                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                      {msg.text}
+                <Box sx={{ maxWidth: "50%" }}>
+                  {!isUser && msg.autor_raw && (
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", opacity: 0.8, mb: 0.5 }}
+                    >
+                      {msg.autor_raw}
                     </Typography>
                   )}
 
-                  {!!msg.archivos?.length && (
-                    <Box sx={{ mt: msg.text ? 1 : 0 }}>
-                      {msg.archivos.map((a) => (
-                        <AttachmentBlock key={a.id} a={a} />
-                      ))}
-                    </Box>
-                  )}
-                </Paper>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      borderRadius: 2,
+                      borderTopLeftRadius: !isUser ? 4 : 16,
+                      borderTopRightRadius: isUser ? 4 : 16,
+                      bgcolor: isUser ? "primary.main" : "background.paper",
+                      color: isUser ? "primary.contrastText" : "text.primary",
+                      border: isUser ? "none" : 1,
+                      borderColor: "divider",
+                    }}
+                  >
+                    {msg.text && (
+                      <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                        {msg.text}
+                      </Typography>
+                    )}
 
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: isUser ? "flex-end" : "flex-start",
-                    gap: 0.5,
-                    mt: 0.25,
-                    px: 0.5,
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontSize: 10, color: "text.secondary" }}>
-                    {formatTime(msg.timestamp)}
-                  </Typography>
-                  {isUser && msg.status && (
-                    <>
-                      {msg.status === "read" ? (
-                        <DeliveredIcon sx={{ fontSize: 14, color: "primary.main" }} />
-                      ) : msg.status === "delivered" ? (
-                        <DeliveredIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                      ) : (
-                        <SentIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-                      )}
-                    </>
-                  )}
+                    {!!msg.archivos?.length && (
+                      <Box sx={{ mt: msg.text ? 1 : 0 }}>
+                        {msg.archivos.map((a) => (
+                          <AttachmentBlock key={a.id} a={a} />
+                        ))}
+                      </Box>
+                    )}
+                  </Paper>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: isUser ? "flex-end" : "flex-start",
+                      gap: 0.5,
+                      mt: 0.25,
+                      px: 0.5,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{ fontSize: 10, color: "text.secondary" }}
+                    >
+                      {formatDateTime(msg.timestamp)}
+                    </Typography>
+
+                    {isUser && msg.status && (
+                      <>
+                        {msg.status === "read" ? (
+                          <DeliveredIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                        ) : msg.status === "delivered" ? (
+                          <DeliveredIcon
+                            sx={{ fontSize: 14, color: "text.secondary" }}
+                          />
+                        ) : (
+                          <SentIcon sx={{ fontSize: 14, color: "text.secondary" }} />
+                        )}
+                      </>
+                    )}
+                  </Box>
                 </Box>
               </Box>
-            </Box>
-          )
-        })}
+            )
+          })}
+        </Box>
+
+        {/* Flechas flotantes */}
+        <IconButton
+          onClick={scrollToBottom}
+          sx={{
+            position: "absolute",
+            right: 16,
+            bottom: 16,
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            boxShadow: 3,
+            zIndex: 20,
+          }}
+        >
+          <KeyboardArrowDown />
+        </IconButton>
+
+        <IconButton
+          onClick={scrollToTop}
+          sx={{
+            position: "absolute",
+            right: 16,
+            bottom: 64,
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            boxShadow: 3,
+            zIndex: 20,
+          }}
+        >
+          <KeyboardArrowUp />
+        </IconButton>
       </Box>
     </Box>
   )

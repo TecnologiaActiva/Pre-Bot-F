@@ -35,9 +35,28 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
+function getTelefonosPreview(chat: any): string {
+  const t1 = chat.telefono1
+  const t2 = chat.telefono2
+
+  const isValid = (v?: string) =>
+    v && v.trim() !== "" && v.toLowerCase() !== "desconocido"
+
+  if (isValid(t1) && isValid(t2)) {
+    return `${t1} · ${t2}`
+  }
+
+  if (isValid(t1)) return t1
+  if (isValid(t2)) return t2
+
+  return "Sin teléfono"
+}
+
+
+// Lista de chats
 export default function ChatListItem({ chat, selected, onSelect }: Props) {
   const unreadCount = chat.unreadCount ?? 0
-  const lastMessage = chat.lastMessage?.trim() || chat.phone || ""
+  const lastMessage = getTelefonosPreview(chat)
   const ts = chat.timestamp
 
   return (
@@ -49,7 +68,7 @@ export default function ChatListItem({ chat, selected, onSelect }: Props) {
         py: 1.5,
         gap: 1,
         borderLeft: 1,
-        width: '100%' ,
+        width: '100%',
         borderColor: selected ? "primary.main" : "transparent",
         bgcolor: selected ? "action.selected" : "transparent",
         transition: "all 0.15s ease",
@@ -88,7 +107,7 @@ export default function ChatListItem({ chat, selected, onSelect }: Props) {
             variant="subtitle2"
             fontWeight={unreadCount > 0 ? 700 : 600}
             noWrap
-            sx={{ color: "text.primary"}}
+            sx={{ color: "text.primary" }}
           >
             {chat.name}
           </Typography>
@@ -116,7 +135,7 @@ export default function ChatListItem({ chat, selected, onSelect }: Props) {
               color: unreadCount > 0 ? "text.primary" : "text.secondary",
               fontWeight: unreadCount > 0 ? 500 : 400,
               flex: 1,
-             maxWidth: '30vh'
+              maxWidth: '30vh'
             }}
           >
             {lastMessage}

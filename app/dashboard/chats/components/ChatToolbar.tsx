@@ -17,11 +17,15 @@ import {
   FilterList as FilterIcon,
   AddCircleOutline as AddIcon,
 } from "@mui/icons-material"
+import { SyncOutlookButton } from "./SyncOutlookButton"
+
+
 
 interface Props {
   searchQuery: string
   onSearchChange: (query: string) => void
-  onUploadFiles: (files: File[]) => void   
+  onUploadFiles: (files: File[]) => void
+  onSyncOutlook?: () => void
   isLoading: boolean
   totalChats: number
 }
@@ -30,6 +34,7 @@ export default function ChatToolbar({
   searchQuery,
   onSearchChange,
   onUploadFiles,
+  onSyncOutlook,
   isLoading,
   totalChats,
 }: Props) {
@@ -50,26 +55,30 @@ export default function ChatToolbar({
       }}
     >
       <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-       <input
-  ref={fileInputRef}
-  type="file"
-  hidden
-  accept=".zip,.rar"
-  multiple                                // ✅
-  onChange={(e) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length) {
-      onUploadFiles(files)                // ✅
-      e.currentTarget.value = ""
-    }
-  }}
-/>
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
+          accept=".zip,.rar"
+          multiple                                // ✅
+          onChange={(e) => {
+            const files = Array.from(e.target.files || [])
+            if (files.length) {
+              onUploadFiles(files)                // ✅
+              e.currentTarget.value = ""
+            }
+          }}
+        />
+
+
+        <SyncOutlookButton
+          onDone={onSyncOutlook}
+          sx={{}}
+        />
 
         <Button
           variant="contained"
-          startIcon={
-            isLoading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />
-          }
+          startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />}
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
           sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, px: 2.5 }}
@@ -77,8 +86,47 @@ export default function ChatToolbar({
           {isLoading ? "Procesando..." : "Cargar chats"}
         </Button>
 
-        <Chip label={`${totalChats} chats`} size="small" variant="outlined" sx={{ fontWeight: 500 }} />
+        <Chip
+          label={`${totalChats} chats`}
+          size="small"
+          variant="outlined"
+          sx={{ fontWeight: 500 }}
+        />
       </Box>
+{/* 
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+        <Tooltip title="Filtros">
+          <IconButton
+            sx={{
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 2,
+              "&:hover": { bgcolor: "action.hover" },
+            }}
+          >
+            <FilterIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box> */}
+
+
+{/* 
+      <Button
+        variant="contained"
+        startIcon={
+          isLoading ? <CircularProgress size={18} color="inherit" /> : <AddIcon />
+        }
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isLoading}
+        sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, px: 2.5 }}
+      >
+        {isLoading ? "Procesando..." : "Cargar chats"}
+      </Button> */}
+
+
+
+      {/* <Chip label={`${totalChats} chats`} size="small" variant="outlined" sx={{ fontWeight: 500 }} /> */}
+
 
       <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
         {/* <TextField
@@ -112,7 +160,7 @@ export default function ChatToolbar({
           }}
         /> */}
 
-        <Tooltip title="Filtros">
+        {/* <Tooltip title="Filtros">
           <IconButton
             sx={{
               border: 1,
@@ -123,7 +171,7 @@ export default function ChatToolbar({
           >
             <FilterIcon fontSize="small" />
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
       </Box>
     </Box>
   )

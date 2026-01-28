@@ -21,10 +21,20 @@ export default function ChatList({ chats, selectedChatId, onSelect, isLoading }:
     const query = q.trim().toLowerCase()
     if (!query) return chats
 
+    const isValid = (v?: string) =>
+      v && v.trim() !== "" && v.toLowerCase() !== "desconocido"
+
     return chats.filter((c) => {
       const name = (c.name || "").toLowerCase()
-      const phone = (c.phone || "").toLowerCase()
-      return name.includes(query) || phone.includes(query)
+
+      const t1 = isValid(c.telefono1) ? c.telefono1.toLowerCase() : ""
+      const t2 = isValid(c.telefono2) ? c.telefono2.toLowerCase() : ""
+
+      return (
+        name.includes(query) ||
+        t1.includes(query) ||
+        t2.includes(query)
+      )
     })
   }, [chats, q])
 
@@ -39,8 +49,6 @@ export default function ChatList({ chats, selectedChatId, onSelect, isLoading }:
         height: "85vh",
         width: "50vh",
         minHeight: 0,
-        overflow: "auto",
-
       }}
     >
       {/* Header */}
@@ -69,7 +77,13 @@ export default function ChatList({ chats, selectedChatId, onSelect, isLoading }:
       </Box>
 
       {/* List */}
-      <Box sx={{ flex: 1, minHeight: 0 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+        }}
+      >
         {isLoading ? (
           <Box sx={{ p: 2 }}>
             {[1, 2, 3, 4].map((i) => (

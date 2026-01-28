@@ -20,7 +20,7 @@ api.interceptors.response.use(
         } catch {}
 
         if (typeof window !== "undefined") {
-          window.location.href = "/login"
+          window.location.href = "/auth/login"
         }
       }
     }
